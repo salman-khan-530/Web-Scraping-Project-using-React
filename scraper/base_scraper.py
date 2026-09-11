@@ -7,17 +7,21 @@ from abc import ABC, abstractmethod
 
 class ApiNotConfiguredError(Exception):
     """Raised when a scraper requires authorized API credentials that have not been configured."""
+
     def __init__(self, service_name, env_var):
         self.service_name = service_name
         self.env_var = env_var
+
         super().__init__(
             f"{service_name} API is not configured. "
-            f"Please configure the required authorized API credentials via {env_var} in your environment (.env)."
+            f"Please configure the required authorized API credentials "
+            f"via {env_var} in your environment (.env)."
         )
 
 
 class ApiError(Exception):
     """Raised when an external API returns an error response (such as 401, 403, 429)."""
+
     pass
 
 
@@ -31,36 +35,36 @@ class BaseScraper(ABC):
     @abstractmethod
     def search_products(self, query, max_products=20):
         """
-        Search for products on the target website/API.
+        Search for products.
 
         Args:
-            query (str): Product search query.
+            query (str): Search query.
             max_products (int): Maximum number of products to return.
 
         Returns:
-            list[dict]: List of standardized product dictionaries.
+            list: List of standardized product dictionaries.
         """
         pass
 
     @abstractmethod
     def get_product_details(self, product_url):
         """
-        Extract detailed information from a product page/resource.
+        Get details for a specific product.
 
         Args:
-            product_url (str): Product page URL or identifier.
+            product_url (str): Product page URL.
 
         Returns:
-            dict: Dictionary with 'category' and 'description' or other detail fields.
+            dict: Product information.
         """
         pass
 
     def is_configured(self):
         """
-        Check whether this scraper has the necessary credentials or prerequisites.
+        Check whether the scraper is properly configured.
 
         Returns:
-            bool: True if ready to operate, False otherwise.
+            bool: True if configured, otherwise False.
         """
         return True
 
@@ -73,14 +77,34 @@ class BaseScraper(ABC):
         url=None,
         category=None,
         description=None,
-        source=None
+        source=None,
+        image_url=None
     ):
         """
         Create a standardized product dictionary.
 
+        Args:
+            name (str): Product name.
+            price: Product price.
+            rating: Product rating.
+            availability (str): Product availability.
+            url (str): Product page URL.
+            category (str): Product category.
+            description (str): Product description.
+            source (str): Source website.
+            image_url (str): Product image URL.
+
         Returns:
             dict: Standard product format.
         """
+
+        # Fix common price encoding artifacts.
+        if isinstance(price, str):
+            price = price.replace("Â£", "£")
+            price = price.replace("Â€", "€")
+            price = price.replace("Â₹", "₹")
+            price = price.replace("Â¥", "¥")
+
         return {
             "name": name,
             "price": price,
@@ -89,5 +113,6 @@ class BaseScraper(ABC):
             "url": url,
             "category": category,
             "description": description,
-            "source": source
+            "source": source,
+            "image_url": image_url
         }

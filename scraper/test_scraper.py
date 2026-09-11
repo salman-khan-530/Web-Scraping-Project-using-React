@@ -1,104 +1,124 @@
 """
-Test scraper implementation using Books to Scrape as a safe demonstration site.
-Labeled strictly as 'Test Site'.
+Test scraper for Books to Scrape.
+
+This scraper is used to test the complete scraping workflow
+without requiring an external API key.
 """
 
 from urllib.parse import urljoin
+
+import requests
 from bs4 import BeautifulSoup
 
 from scraper.base_scraper import BaseScraper
-from scraper.config import (
-    TEST_SITE_NAME,
-    TEST_SITE_BASE_URL,
-    TEST_SITE_CATALOGUE_URL,
-    MAX_PAGES_TO_SCRAPE
-)
-from scraper.http_client import fetch_page
-from scraper.logger import logger
 
 
 class TestScraper(BaseScraper):
     """
-    Test scraper implementation using Books to Scrape.
-    Used exclusively as a safe test/demo source for evaluating the scraping pipeline.
+    Scraper for the Books to Scrape practice website.
     """
 
-    def __init__(self):
-        self.source_name = TEST_SITE_NAME
-        self.base_url = TEST_SITE_BASE_URL
-        self.catalogue_url = TEST_SITE_CATALOGUE_URL
-        self.max_pages = MAX_PAGES_TO_SCRAPE
-        logger.info(f"{self.source_name} scraper initialized.")
+    source_name = "Test Site"
+    base_url = "https://books.toscrape.com/"
 
     def search_products(self, query, max_products=20):
         """
-        Search for products matching query on the Test Site.
+        Search for products matching the query.
+
+        The scraper goes through multiple pages until:
+        - enough products are found, or
+        - there are no more pages.
 
         Args:
-            query (str): Product search query keyword.
-            max_products (int): Maximum number of products to collect.
+            query (str): Product name to search for.
+            max_products (int): Maximum number of products to return.
 
         Returns:
-            list[dict]: Extracted product dictionaries.
+            list: List of standardized product dictionaries.
         """
-        # Validate query
-        if not isinstance(query, str):
-            logger.warning("Search query must be a string.")
-            return []
-
-        search_term = query.strip().lower()
-        if not search_term:
-            logger.warning("Search query is empty or contains only whitespace.")
-            return []
-
-        # Validate max_products
-        if not isinstance(max_products, int) or max_products <= 0:
-            logger.warning(f"Invalid max_products: {max_products}. Must be positive integer.")
-            return []
 
         products = []
-        page_number = 1
 
-        logger.info(f"{self.source_name} search started: '{search_term}' (limit: {max_products})")
+        if not isinstance(query, str) or not query.strip():
+            return products
 
-        while len(products) < max_products and page_number <= self.max_pages:
-            page_url = self.catalogue_url.format(page_number)
-            logger.info(f"Fetching page {page_number}/{self.max_pages}: {page_url}")
+        query = query.strip().lower()
 
-            html = fetch_page(page_url)
-            if not html:
-                logger.info(f"Could not fetch page {page_number}. Ending pagination.")
+        current_url = self.base_url
+
+        while current_url and len(products) < max_products:
+
+            try:
+                response = requests.get(
+                    current_url,
+                    timeout=15
+                )
+                response.raise_for_status()
+
+            except requests.RequestException:
                 break
 
-            soup = BeautifulSoup(html, "html.parser")
-            cards = soup.select("article.product_pod")
+            soup = BeautifulSoup(
+                response.text,
+                "html.parser"
+            )
 
-            if not cards:
-                logger.info(f"No product cards found on page {page_number}. End of catalogue reached.")
-                break
+            product_cards = soup.select(".product_pod")
 
-            for card in cards:
+            for card in product_cards:
+
+                if len(products) >= max_products:
+                    break
+
+                # -----------------------------
+                # Product name
+                # -----------------------------
+
                 name_tag = card.select_one("h3 a")
+
                 if not name_tag:
                     continue
 
-                name = name_tag.get("title") or name_tag.get_text(strip=True)
+                name = name_tag.get("title")
+
                 if not name:
+                    name = name_tag.get_text(strip=True)
+
+                # Search by product name
+                if query not in name.lower():
                     continue
 
-                # Filter by search query
-                if search_term not in name.lower():
-                    continue
+                # -----------------------------
+                # Price
+                # -----------------------------
 
-                # Price extraction
-                price_tag = card.select_one(".price_color")
-                price = price_tag.get_text(strip=True) if price_tag else None
+                price_tag = card.select_one(
+                    ".price_color"
+                )
 
-                # Rating extraction
+                price = (
+                    price_tag.get_text(strip=True)
+                    if price_tag
+                    else None
+                )
+
+                # -----------------------------
+                # Rating
+                # -----------------------------
+
                 rating = None
-                rating_tag = card.select_one("p.star-rating")
+
+                rating_tag = card.select_one(
+                    ".star-rating"
+                )
+
                 if rating_tag:
-                    classes = rating_tag.get("class", [])
+
+                    rating_classes = rating_tag.get(
+                        "class",
+                        []
+                    )
+
                     rating_map = {
                         "One": 1,
                         "Two": 2,
@@ -106,25 +126,113 @@ class TestScraper(BaseScraper):
                         "Four": 4,
                         "Five": 5
                     }
-                    for word, val in rating_map.items():
-                        if word in classes:
-                            rating = val
+
+                    for rating_name, rating_value in rating_map.items():
+
+                        if rating_name in rating_classes:
+                            rating = rating_value
                             break
 
+                # -----------------------------
                 # Availability
-                avail_tag = card.select_one(".availability")
-                availability = avail_tag.get_text(" ", strip=True) if avail_tag else None
+                # -----------------------------
 
-                # URL
-                rel_url = name_tag.get("href")
-                if rel_url:
-                    # Resolve relative catalogue URL
-                    product_url = urljoin(page_url, rel_url)
-                else:
-                    product_url = None
+                availability_tag = card.select_one(
+                    ".availability"
+                )
 
-                # Product detail extraction (category, description)
-                details = self.get_product_details(product_url) if product_url else {}
+                availability = (
+                    availability_tag.get_text(
+                        " ",
+                        strip=True
+                    )
+                    if availability_tag
+                    else None
+                )
+
+                # -----------------------------
+                # Product URL
+                # -----------------------------
+
+                product_link = name_tag.get("href")
+
+                product_url = (
+                    urljoin(
+                        current_url,
+                        product_link
+                    )
+                    if product_link
+                    else None
+                )
+
+                # -----------------------------
+                # Product image
+                # -----------------------------
+
+                image_tag = card.select_one("img")
+
+                image_url = None
+
+                if image_tag:
+
+                    image_src = image_tag.get("src")
+
+                    if image_src:
+                        image_url = urljoin(
+                            current_url,
+                            image_src
+                        )
+
+                # -----------------------------
+                # Category & description
+                # -----------------------------
+
+                category = None
+                description = None
+
+                if product_url:
+
+                    try:
+
+                        detail_response = requests.get(
+                            product_url,
+                            timeout=15
+                        )
+
+                        detail_response.raise_for_status()
+
+                        detail_soup = BeautifulSoup(
+                            detail_response.text,
+                            "html.parser"
+                        )
+
+                        # Category
+                        breadcrumb = detail_soup.select(
+                            ".breadcrumb li a"
+                        )
+
+                        if breadcrumb:
+                            category = breadcrumb[-1].get_text(
+                                strip=True
+                            )
+
+                        # Description
+                        description_tag = detail_soup.select_one(
+                            "#product_description + p"
+                        )
+
+                        if description_tag:
+                            description = description_tag.get_text(
+                                " ",
+                                strip=True
+                            )
+
+                    except requests.RequestException:
+                        pass
+
+                # -----------------------------
+                # Create standardized product
+                # -----------------------------
 
                 product = self.create_product(
                     name=name,
@@ -132,67 +240,211 @@ class TestScraper(BaseScraper):
                     rating=rating,
                     availability=availability,
                     url=product_url,
-                    category=details.get("category"),
-                    description=details.get("description"),
-                    source=self.source_name
+                    category=category,
+                    description=description,
+                    source=self.source_name,
+                    image_url=image_url
                 )
 
                 products.append(product)
-                logger.info(f"Collected product ({len(products)}/{max_products}): {name}")
 
-                if len(products) >= max_products:
-                    break
+            # -----------------------------
+            # Pagination
+            # -----------------------------
 
-            # Check if next page exists via pagination controls
-            next_btn = soup.select_one("li.next a")
-            if not next_btn:
-                logger.info("No next page link found. Finished all available pages.")
-                break
+            next_page = soup.select_one(
+                "li.next a"
+            )
 
-            page_number += 1
+            if next_page:
 
-        logger.info(f"{self.source_name} search finished. Total matched: {len(products)}")
-        return products[:max_products]
+                next_url = next_page.get("href")
+
+                current_url = urljoin(
+                    current_url,
+                    next_url
+                )
+
+            else:
+                current_url = None
+
+        return products
 
     def get_product_details(self, product_url):
         """
-        Extract category and description from a specific product page.
+        Get detailed information about a single product.
+
+        Args:
+            product_url (str): URL of the product page.
+
+        Returns:
+            dict: Product details.
         """
+
         if not product_url:
-            return {"category": None, "description": None}
+            return {}
 
-        html = fetch_page(product_url)
-        if not html:
-            return {"category": None, "description": None}
+        try:
 
-        soup = BeautifulSoup(html, "html.parser")
+            response = requests.get(
+                product_url,
+                timeout=15
+            )
 
-        # Category from breadcrumb
+            response.raise_for_status()
+
+        except requests.RequestException:
+            return {}
+
+        soup = BeautifulSoup(
+            response.text,
+            "html.parser"
+        )
+
+        # -----------------------------
+        # Product name
+        # -----------------------------
+
+        name_tag = soup.select_one(
+            ".product_main h1"
+        )
+
+        name = (
+            name_tag.get_text(strip=True)
+            if name_tag
+            else None
+        )
+
+        # -----------------------------
+        # Price
+        # -----------------------------
+
+        price_tag = soup.select_one(
+            ".price_color"
+        )
+
+        price = (
+            price_tag.get_text(strip=True)
+            if price_tag
+            else None
+        )
+
+        # -----------------------------
+        # Rating
+        # -----------------------------
+
+        rating = None
+
+        rating_tag = soup.select_one(
+            ".star-rating"
+        )
+
+        if rating_tag:
+
+            rating_classes = rating_tag.get(
+                "class",
+                []
+            )
+
+            rating_map = {
+                "One": 1,
+                "Two": 2,
+                "Three": 3,
+                "Four": 4,
+                "Five": 5
+            }
+
+            for rating_name, rating_value in rating_map.items():
+
+                if rating_name in rating_classes:
+                    rating = rating_value
+                    break
+
+        # -----------------------------
+        # Availability
+        # -----------------------------
+
+        availability_tag = soup.select_one(
+            ".availability"
+        )
+
+        availability = (
+            availability_tag.get_text(
+                " ",
+                strip=True
+            )
+            if availability_tag
+            else None
+        )
+
+        # -----------------------------
+        # Category
+        # -----------------------------
+
         category = None
-        crumbs = soup.select(".breadcrumb li a")
-        if len(crumbs) >= 3:
-            category = crumbs[2].get_text(strip=True)
 
+        breadcrumb = soup.select(
+            ".breadcrumb li a"
+        )
+
+        if breadcrumb:
+            category = breadcrumb[-1].get_text(
+                strip=True
+            )
+
+        # -----------------------------
         # Description
+        # -----------------------------
+
         description = None
-        desc_header = soup.select_one("#product_description")
-        if desc_header:
-            desc_p = desc_header.find_next_sibling("p")
-            if desc_p:
-                raw_desc = desc_p.get_text(" ", strip=True)
-                # Clean up "...more" and normalize spaces
-                raw_desc = raw_desc.replace("...more", "").strip()
-                description = " ".join(raw_desc.split())
 
-                # Books to Scrape sometimes repeats the lead sentence
-                prefix_len = 80
-                if len(description) > prefix_len * 2:
-                    prefix = description[:prefix_len]
-                    second_idx = description.find(prefix, prefix_len)
-                    if second_idx != -1:
-                        description = description[second_idx:].strip()
+        description_tag = soup.select_one(
+            "#product_description + p"
+        )
 
-        return {
-            "category": category,
-            "description": description
-        }
+        if description_tag:
+            description = description_tag.get_text(
+                " ",
+                strip=True
+            )
+
+        # -----------------------------
+        # Image
+        # -----------------------------
+
+        image_url = None
+
+        image_tag = soup.select_one(
+            ".item.active img"
+        )
+
+        if not image_tag:
+            image_tag = soup.select_one(
+                ".product_page img"
+            )
+
+        if image_tag:
+
+            image_src = image_tag.get("src")
+
+            if image_src:
+                image_url = urljoin(
+                    product_url,
+                    image_src
+                )
+
+        # -----------------------------
+        # Return standardized product
+        # -----------------------------
+
+        return self.create_product(
+            name=name,
+            price=price,
+            rating=rating,
+            availability=availability,
+            url=product_url,
+            category=category,
+            description=description,
+            source=self.source_name,
+            image_url=image_url
+        )

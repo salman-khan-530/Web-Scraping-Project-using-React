@@ -16,7 +16,10 @@ def clean_text_encoding(text):
 
     # Common mojibake / encoding artifacts
     artifacts = {
-        "Â": "",
+        "Â£": "£",
+        "Â€": "€",
+        "Â₹": "₹",
+        "Â¥": "¥",
         "â€™": "'",
         "â€œ": '"',
         "â€": '"',
