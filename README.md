@@ -1,280 +1,602 @@
-# E-Commerce Product Data Web Scraper
+# E-Commerce Product Scraper
 
-A robust, modular, and compliance-first Python web scraping, data processing, and visualization system. This project collects structured product records, sanitizes and standardizes messy text, normalizes pricing and ratings, eliminates duplicate entries, performs automated quality validation, and exports clean datasets to both CSV and Excel formats. It features both an interactive command-line interface (CLI) and a rich Streamlit web dashboard.
+A full-stack web scraping application that searches and collects product data from supported e-commerce sources. The project uses a **React + Vite frontend**, **FastAPI backend**, and a modular Python scraper architecture.
 
----
+The application provides a web interface where users can select a source, enter a search query, and retrieve structured product information.
 
-## Table of Contents
+## 🌐 Live Demo
 
-- [Project Overview](#project-overview)
-- [Key Features](#key-features)
-- [Architecture & Design](#architecture--design)
-- [Technologies Used](#technologies-used)
-- [Project Directory Structure](#project-directory-structure)
-- [Installation & Setup](#installation--setup)
-- [How to Run](#how-to-run)
-  - [Streamlit Web Application](#streamlit-web-application)
-  - [Command-Line Interface (CLI)](#command-line-interface-cli)
-- [Testing Source vs. Production APIs](#testing-source-vs-production-apis)
-- [API Configuration](#api-configuration)
-- [Running Automated Tests](#running-automated-tests)
-- [Data Pipeline Details](#data-pipeline-details)
-- [License & Academic Integrity](#license--academic-integrity)
+**Frontend:**
+https://web-scraping-project-using-react-6q.vercel.app/
 
----
+**Backend API:**
+https://web-scraping-project-using-react.vercel.app/
 
-## Project Overview
+## 📌 Project Overview
 
-The **E-Commerce Product Data Web Scraper** is designed to bridge the gap between raw, unstructured web data and production-ready business intelligence. In accordance with legal, ethical, and academic standards:
+The **E-Commerce Product Scraper** is designed as a modular full-stack application for collecting and processing product information.
 
-1. **Test Demonstration Source**: Uses [Books to Scrape](https://books.toscrape.com/) as a designated safe sandbox, labeled strictly as **Test Site**, to prove the live, multi-page HTML extraction pipeline without breaking site terms or anti-scraping protections.
-2. **Authorized Enterprise E-Commerce (Amazon, Flipkart, Alibaba)**: Built on an API-first interface (`BaseScraper`). Direct scraping, CAPTCHA bypass, and stealth evasion are explicitly prohibited. Instead, clean adapter stubs connect directly to official/partner APIs when credentials (`.env`) are supplied.
+The project currently uses **Books to Scrape** as the test/demo source. It is a practice website specifically designed for web scraping projects.
 
----
-
-## Key Features
-
-- **Object-Oriented Scraper Architecture**: Standardized `BaseScraper` contract ensuring all sources produce uniform dictionaries (`name`, `price`, `rating`, `availability`, `url`, `category`, `description`, `source`).
-- **Robots.txt Compliance & Domain Caching**: Synchronously validates crawling permissions against `robots.txt` per RFC 9309 rules, caching parsed policies by hostname to avoid duplicate network roundtrips.
-- **Polite Rate Limiting & Session Pooling**: Reuses persistent `requests.Session` connections with realistic user-agent headers, configurable timeouts, and polite inter-request delays.
-- **Controlled Pagination**: Traverses multi-page catalogs up to user limits with safety bounds to prevent infinite loops.
-- **Search & Filtering**: Real-time keyword filtering across catalog pod titles.
-- **Data Cleaning & Text Normalization**:
-  - Cleans encoding artifacts (e.g., latin1/mojibake errors like `Â`).
-  - Strips arbitrary currency symbols (`£`, `$`, `€`, `₹`) and thousand separators, parsing prices to standard floats.
-  - Converts text ratings (`One` → 1.0, `Five` → 5.0) and fractional ratings (`4.5 out of 5`) into a 1.0–5.0 numeric scale.
-  - Normalizes inventory statuses (e.g., `in stock (19 available)` → `In Stock`).
-- **Deduplication & Non-Destructive Validation**:
-  - Removes duplicate records using URL-based hashing and exact row matching.
-  - Preserves records with missing optional fields (e.g., missing descriptions or ratings) while filtering invalid records missing mandatory keys (name or URL).
-- **Multi-Format Styled Exports**:
-  - **CSV**: UTF-8 with BOM (`utf-8-sig`) for compatibility with Microsoft Excel on Windows.
-  - **Excel**: Formatted `.xlsx` workbooks generated using `openpyxl`, featuring bold styled headers, background fills, and auto-adjusted column widths.
-- **Visual Analytics**: Interactive Plotly visualizations (price distribution histograms, rating breakdown bar charts, availability pie charts, and category distribution charts).
-- **Streamlit Web UI**: Full-featured user interface with metric summary cards, clickable catalog links, dynamic Plotly charts, insights cards, and direct CSV/Excel download buttons.
-- **Robust Centralized Logging**: Logs operations, network requests, HTTP status codes, cleaning actions, and errors to `logs/scraper.log`.
-
----
-
-## Technologies Used
-
-- **Python 3.12**
-- **Requests**: HTTP networking and session pooling.
-- **BeautifulSoup4**: HTML document parsing and CSS selector extraction.
-- **Pandas**: Structured data cleaning, transformation, and deduplication.
-- **OpenPyXL**: Styled Microsoft Excel spreadsheet generation.
-- **Plotly**: Interactive charts and data visualizations.
-- **Streamlit**: Modern interactive web interface.
-- **Matplotlib**: Headless and static visualization engine.
-- **Python-dotenv**: Environment variable management.
-- **Unittest**: Automated test suite.
-
----
-
-## Project Directory Structure
+The application follows an API-based architecture:
 
 ```text
-Web Scraping Project/
+React Frontend
+      ↓
+FastAPI Backend
+      ↓
+ScraperManager
+      ↓
+Selected Scraper
+      ↓
+Product Data
+      ↓
+React UI
+```
+
+The architecture also provides adapters for future authorized integrations with e-commerce platforms such as Amazon, Flipkart, and Alibaba.
+
+> **Important:** The project does not attempt to bypass CAPTCHAs, authentication, anti-bot systems, or other access controls. Production e-commerce integrations should use authorized APIs or approved data-access methods.
+
+---
+
+## ✨ Key Features
+
+### Frontend
+
+* React-based user interface
+* Vite development and build system
+* Website/source selection
+* Product search
+* Configurable maximum number of products
+* Product result display
+* API integration with FastAPI
+* Responsive interface
+* Production deployment on Vercel
+
+### Backend
+
+* FastAPI REST API
+* CORS configuration for local and production frontend
+* Query validation
+* Maximum product limit validation
+* Error handling with HTTP exceptions
+* Modular scraper management
+* Production deployment on Vercel
+
+### Scraper System
+
+* Object-oriented scraper architecture
+* `BaseScraper` interface
+* Centralized `ScraperManager`
+* Books to Scrape test scraper
+* Pagination support
+* HTTP request handling
+* robots.txt checking
+* Polite request delays
+* Product data extraction
+* Data cleaning and normalization
+* Duplicate handling
+* CSV and Excel export functionality
+
+---
+
+## 🛠️ Technologies Used
+
+### Frontend
+
+* **React**
+* **Vite**
+* **JavaScript**
+* **HTML**
+* **CSS**
+
+### Backend
+
+* **Python 3.12**
+* **FastAPI**
+* **Uvicorn**
+* **Requests**
+* **BeautifulSoup4**
+* **Pandas**
+* **OpenPyXL**
+* **Python-dotenv**
+
+### Development & Deployment
+
+* **Git**
+* **GitHub**
+* **Vercel**
+* **VS Code**
+
+---
+
+## 📂 Project Directory Structure
+
+```text
+Web-Scraping-Project-React/
 │
-├── app.py                     # Streamlit web dashboard application
-├── main.py                    # Command-line interface entry point
-├── requirements.txt           # Clean runtime dependencies
-├── README.md                  # Comprehensive documentation
-├── .gitignore                 # Git ignore rules (logs, venv, cache, secrets)
-├── .env.example               # Template for API credentials
+├── backend/
+│   └── main.py
 │
-├── scraper/                   # Core scraping & data processing package
-│   ├── __init__.py            # Package initialization & exports
-│   ├── base_scraper.py        # BaseScraper interface & ApiNotConfiguredError
-│   ├── scraper_manager.py     # Multi-scraper registry & coordinator
-│   ├── test_scraper.py        # Fully working scraper for Test Site
-│   ├── amazon_scraper.py      # Authorized API integration stub for Amazon
-│   ├── flipkart_scraper.py    # Authorized API integration stub for Flipkart
-│   ├── alibaba_scraper.py     # Authorized API integration stub for Alibaba
-│   ├── http_client.py         # Resilient HTTP client with rate-limiting
-│   ├── robots_checker.py      # Robots.txt compliance engine with domain cache
-│   ├── data_processor.py      # Data cleaning, normalization, and validation
-│   ├── exporter.py            # CSV & OpenPyXL Excel export utilities
-│   ├── analyzer.py            # Summary statistics and metric calculation
-│   ├── visualizer.py          # Matplotlib-based chart generation
-│   ├── config.py              # Centralized application configuration
-│   └── logger.py              # Log configuration & handlers
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── App.jsx
+│   │   ├── main.jsx
+│   │   └── ...
+│   ├── index.html
+│   ├── package.json
+│   ├── package-lock.json
+│   └── vite.config.js
 │
-├── tests/                     # Automated test suite (34 unit tests)
+├── scraper/
 │   ├── __init__.py
-│   ├── test_http_client.py    # Tests for HTTP requests, errors, and timeouts
-│   ├── test_robots_checker.py # Tests for robots.txt rules and caching
-│   ├── test_test_scraper.py   # Tests for extraction, pagination, and details
-│   ├── test_scraper_manager.py# Tests for scraper routing and API errors
-│   ├── test_data_processor.py # Tests for price/rating cleaning & validation
-│   ├── test_exporter.py       # Tests for CSV/Excel file creation & styling
-│   └── test_analyzer.py       # Tests for statistical metrics & edge cases
+│   ├── base_scraper.py
+│   ├── scraper_manager.py
+│   ├── test_scraper.py
+│   ├── amazon_scraper.py
+│   ├── flipkart_scraper.py
+│   ├── alibaba_scraper.py
+│   ├── http_client.py
+│   ├── robots_checker.py
+│   ├── data_processor.py
+│   ├── exporter.py
+│   ├── analyzer.py
+│   ├── config.py
+│   └── logger.py
 │
-├── output/                    # Generated datasets and exports
-│   ├── products.csv           # Cleaned product CSV dataset
-│   └── products.xlsx          # Cleaned product Excel workbook
+├── tests/
+│   └── ...
 │
-├── logs/                      # Application activity logs
-│   └── scraper.log            # Detailed execution & audit log
+├── notebooks/
+│   └── ...
 │
-└── notebooks/                 # Exploratory research notebooks
-    └── 01_requests_basics.ipynb
+├── output/
+│   └── ...
+│
+├── logs/
+│   └── ...
+│
+├── .env.example
+├── .gitignore
+├── requirements.txt
+├── vercel.json
+└── README.md
+```
+
+> The `frontend/` directory contains the React application, while `backend/` contains the FastAPI API. The `scraper/` directory contains the reusable scraping and data-processing logic.
+
+---
+
+## ⚙️ Installation & Setup
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/salman-khan-530/Web-Scraping-Project-using-React.git
+```
+
+Move into the project:
+
+```bash
+cd Web-Scraping-Project-using-React
 ```
 
 ---
 
-## Installation & Setup
+### 2. Create Python Virtual Environment
 
-### 1. Prerequisites
-- **Python 3.12** installed on your system.
-- PowerShell or Terminal with administrative access if required.
-
-### 2. Create Virtual Environment
-Open PowerShell inside the project folder:
 ```powershell
 python -m venv .venv
 ```
 
-### 3. Activate the Virtual Environment
-On Windows PowerShell:
+Activate it on Windows PowerShell:
+
 ```powershell
 .venv\Scripts\Activate.ps1
 ```
-*(If you encounter execution policy restrictions in PowerShell, run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` first).*
 
-### 4. Install Dependencies
-Install all required packages from `requirements.txt`:
+If PowerShell blocks script execution:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+```
+
+Then activate the environment again:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+---
+
+### 3. Install Backend Dependencies
+
 ```powershell
 pip install -r requirements.txt
 ```
 
 ---
 
-## How to Run
+### 4. Install Frontend Dependencies
 
-### Streamlit Web Application
+Open a terminal inside the `frontend` directory:
 
-Launch the web dashboard:
 ```powershell
-streamlit run app.py
-```
-Or when running from the virtual environment directly:
-```powershell
-.\.venv\Scripts\streamlit.exe run app.py
+cd frontend
 ```
 
-The application will open in your default browser at `http://localhost:8501`.
+Install the Node.js dependencies:
 
-#### Using the UI:
-1. **Target Source**: Choose **Test Site** from the sidebar dropdown (or select Amazon/Flipkart/Alibaba if credentials are configured).
-2. **Search Query**: Type a keyword (e.g. `light`, `poetry`, `art`).
-3. **Maximum Products**: Select the target item count (1–100).
-4. **Click `🔎 Search Products`**:
-   - Live scraping runs in the background.
-   - Summary metric cards update (`Products Found`, `Average Price`, `Average Rating`, `In Stock`).
-   - Cleaned catalog table renders with clickable product URLs.
-   - Interactive Plotly charts visualize price, rating, availability, and category distributions.
-   - Key insights highlight most expensive, cheapest, and highest-rated products.
-   - Direct download buttons provide instant access to the cleaned `CSV` and `Excel` files.
-
----
-
-### Command-Line Interface (CLI)
-
-Run `main.py` directly from the command line:
-
-#### Basic Test Scrape:
 ```powershell
-python main.py --query "light" --websites test --max-products 5
-```
-
-#### Save Visualizations to Disk:
-```powershell
-python main.py --query "art" --websites test --max-products 10 --save-plots
-```
-*(Saved plots will be created in `output/plots/`).*
-
-#### View CLI Options:
-```powershell
-python main.py --help
+npm install
 ```
 
 ---
 
-## Testing Source vs. Production APIs
+## ▶️ Running the Project Locally
 
-| Feature / Website | **Test Site** (Books to Scrape) | **Amazon / Flipkart / Alibaba** |
-| :--- | :--- | :--- |
-| **Purpose** | Pipeline demonstration & evaluation | Production authorized integration |
-| **Authentication** | None required | Requires authorized API credentials |
-| **Access Method** | Live HTML parsing & HTTP requests | Official partner / developer REST API |
-| **robots.txt Checked** | Yes (`/robots.txt` evaluated) | Handled by API protocols |
-| **Default Status** | **Ready to run out-of-the-box** | Configured via `.env` credentials |
+The backend and frontend run separately.
 
----
+### Start the FastAPI Backend
 
-## API Configuration
+From the project root:
 
-To enable Amazon, Flipkart, or Alibaba integration:
+```powershell
+uvicorn backend.main:app --reload
+```
 
-1. Copy the template `.env.example` to `.env`:
-   ```powershell
-   Copy-Item .env.example .env
-   ```
-2. Open `.env` and provide your authorized API keys:
-   ```env
-   AMAZON_API_KEY=your_authorized_amazon_key_here
-   FLIPKART_API_KEY=your_authorized_flipkart_key_here
-   ALIBABA_API_KEY=your_authorized_alibaba_key_here
-   ```
-3. If credentials are missing, the system will gracefully alert you in both the UI and CLI rather than attempting prohibited web scraping or returning simulated fake records.
+The backend will normally be available at:
+
+```text
+http://127.0.0.1:8000
+```
+
+FastAPI documentation is available at:
+
+```text
+http://127.0.0.1:8000/docs
+```
 
 ---
 
-## Running Automated Tests
+### Start the React Frontend
 
-A comprehensive unit test suite covering all modules is located in `tests/`.
+Open another terminal:
 
-Run all 34 automated unit tests:
+```powershell
+cd frontend
+```
+
+Then:
+
+```powershell
+npm run dev
+```
+
+Vite will provide a local URL, normally:
+
+```text
+http://localhost:5173
+```
+
+---
+
+## 🔗 API Configuration
+
+The React frontend uses the `VITE_API_URL` environment variable to determine which FastAPI backend it should communicate with.
+
+For local development, create:
+
+```text
+frontend/.env
+```
+
+and add:
+
+```env
+VITE_API_URL=http://127.0.0.1:8000
+```
+
+For production, the Vercel frontend uses:
+
+```env
+VITE_API_URL=https://web-scraping-project-using-react.vercel.app
+```
+
+### Important
+
+Environment variables beginning with `VITE_` are exposed to the frontend. Therefore, **never put private API keys or secrets in `VITE_*` variables.**
+
+---
+
+## 🔌 API Endpoints
+
+### Home
+
+```http
+GET /
+```
+
+Returns a message confirming that the API is running.
+
+Example response:
+
+```json
+{
+  "message": "E-Commerce Product Scraper API is running!"
+}
+```
+
+---
+
+### Search Products
+
+```http
+GET /products
+```
+
+Parameters:
+
+| Parameter      | Type    | Description                |
+| -------------- | ------- | -------------------------- |
+| `website`      | string  | Scraper/source to use      |
+| `query`        | string  | Product search query       |
+| `max_products` | integer | Maximum number of products |
+
+Example:
+
+```text
+/products?website=test&query=book&max_products=10
+```
+
+Example response structure:
+
+```json
+{
+  "website": "test",
+  "query": "book",
+  "count": 10,
+  "products": []
+}
+```
+
+---
+
+## 🧩 Scraper Architecture
+
+The scraper system is designed using a modular architecture.
+
+```text
+ScraperManager
+      │
+      ├── TestScraper
+      │
+      ├── AmazonScraper
+      │
+      ├── FlipkartScraper
+      │
+      └── AlibabaScraper
+```
+
+The `ScraperManager` selects the appropriate scraper based on the requested website.
+
+Each scraper follows the common `BaseScraper` interface, allowing different data sources to produce a consistent product structure.
+
+---
+
+## 📦 Product Data
+
+The scraper is designed to return structured product records containing fields such as:
+
+```text
+name
+price
+rating
+availability
+url
+category
+description
+source
+```
+
+This standardized structure makes it easier to process and display products from different sources.
+
+---
+
+## 🧹 Data Processing
+
+The project includes data-processing functionality for:
+
+* Text cleaning
+* Price normalization
+* Rating normalization
+* Availability normalization
+* Missing-value handling
+* Duplicate removal
+* Data validation
+* Structured output generation
+
+---
+
+## 🤖 Test Website
+
+The current working scraper uses:
+
+**Books to Scrape**
+
+https://books.toscrape.com/
+
+Books to Scrape is used as the project's demonstration source because it is specifically designed for practicing web scraping.
+
+The application can:
+
+* Search products
+* Extract product information
+* Navigate product pages
+* Handle pagination
+* Return structured product data
+
+---
+
+## 🔐 Authorized E-Commerce Integrations
+
+The project includes scraper adapter modules for:
+
+* Amazon
+* Flipkart
+* Alibaba
+
+These integrations are intended for **authorized API access**.
+
+API credentials should be stored in environment variables and should never be committed to GitHub.
+
+Example:
+
+```env
+AMAZON_API_KEY=your_key_here
+FLIPKART_API_KEY=your_key_here
+ALIBABA_API_KEY=your_key_here
+```
+
+The actual `.env` file should remain private.
+
+---
+
+## 🧪 Testing
+
+Automated tests are located inside the:
+
+```text
+tests/
+```
+
+Run the test suite with:
+
 ```powershell
 python -m unittest discover tests -v
 ```
-Or via `.venv`:
-```powershell
-.\.venv\Scripts\python.exe -m unittest discover tests -v
-```
 
-### Test Coverage Highlights:
-- **`test_http_client.py`**: Validates request dispatch, connection failures, timeout recovery, and robots.txt blocking.
-- **`test_robots_checker.py`**: Tests RFC 9309 rules, 404 allowances, fail-closed handling on unreachable hosts, and domain caching.
-- **`test_test_scraper.py`**: Verifies HTML card extraction, detail page parsing, pagination, and missing-field tolerance.
-- **`test_scraper_manager.py`**: Tests scraper registry, multi-search coordination, and `ApiNotConfiguredError` detection.
-- **`test_data_processor.py`**: Tests multi-currency conversion, word-to-numeric ratings, duplicate removal, and non-destructive validation.
-- **`test_exporter.py`**: Validates CSV and OpenPyXL Excel generation, directory auto-creation, and header styling.
-- **`test_analyzer.py`**: Validates summary statistics, top/lowest calculations, and empty DataFrame edge cases.
+The tests cover different components of the scraping system, including HTTP handling, robots.txt checking, scraping logic, data processing, exporting, and scraper management.
 
 ---
 
-## Data Pipeline Details
+## 🚀 Deployment
 
-```mermaid
-graph TD
-    A[User Query & Source Selection] --> B[Robots.txt & Compliance Check]
-    B -->|Allowed| C[HTTP Request with Polite Delay]
-    B -->|Disallowed / Network Error| X[Fail-Closed / Halt]
-    C --> D[HTML Extraction & Card Parsing]
-    D --> E[Pagination Loop until Max Products]
-    E --> F[Raw Product Dictionaries]
-    F --> G[Data Cleaning & Normalization]
-    G --> H[Duplicate Removal URL & Exact]
-    G --> I[Quality Validation Non-Destructive]
-    I --> J[CSV & OpenPyXL Excel Exports]
-    I --> K[Statistical Analysis & Plotly Visuals]
-    I --> L[Interactive Streamlit Dashboard]
+The project uses two separate Vercel deployments.
+
+### Frontend
+
+The React/Vite frontend is deployed from:
+
+```text
+frontend/
+```
+
+Live frontend:
+
+https://web-scraping-project-using-react-6q.vercel.app/
+
+### Backend
+
+The FastAPI backend is deployed from:
+
+```text
+backend/main.py
+```
+
+Live backend:
+
+https://web-scraping-project-using-react.vercel.app/
+
+The frontend communicates with the backend through the `VITE_API_URL` environment variable.
+
+---
+
+## 🌐 Deployment Architecture
+
+```text
+                    User
+                      │
+                      ▼
+            ┌─────────────────┐
+            │  React + Vite   │
+            │    Frontend     │
+            └────────┬────────┘
+                     │
+                     │ HTTP Request
+                     ▼
+            ┌─────────────────┐
+            │     FastAPI     │
+            │     Backend     │
+            └────────┬────────┘
+                     │
+                     ▼
+            ┌─────────────────┐
+            │ ScraperManager  │
+            └────────┬────────┘
+                     │
+             ┌───────┴────────┐
+             ▼                ▼
+      Test Scraper       API Adapters
+             │          Amazon / etc.
+             ▼
+        Product Data
+             │
+             ▼
+       JSON Response
+             │
+             ▼
+        React Frontend
 ```
 
 ---
 
-## License & Academic Integrity
+## 🛡️ Security & Responsible Scraping
 
-This project is developed as part of **Internship Task 11**. It strictly respects web crawling ethics, website Terms of Service, and robots.txt directives. Real-world protected e-commerce portals are accessed strictly through authorized programmatic interfaces.
+This project follows responsible web-scraping practices.
+
+* No CAPTCHA bypassing
+* No anti-bot protection bypassing
+* No credential exposure
+* API keys are stored through environment variables
+* The test website is used for scraping practice
+* Production e-commerce integrations should use authorized APIs
+* `robots.txt` rules are considered by the scraping system
+* Requests are handled with controlled delays
+
+---
+
+## 🔮 Future Improvements
+
+Possible future improvements include:
+
+* Add more authorized API integrations
+* Add advanced product filtering
+* Add sorting by price and rating
+* Add product category filters
+* Add user authentication
+* Add database storage
+* Add search history
+* Improve mobile responsiveness
+* Add automated CI/CD testing
+* Add more comprehensive API documentation
+* Add product analytics and visualization
+
+---
+
+## 👨‍💻 Author
+
+**Salman Khan**
+
+BS Computer Science (Artificial Intelligence)
+Abdul Wali Khan University Mardan
+
+---
+
+## 📄 License
+
+This project was developed as part of **Internship Task 11** for educational and demonstration purposes.
+
+The project is intended to demonstrate full-stack development, web scraping, API development, data processing, and deployment.
