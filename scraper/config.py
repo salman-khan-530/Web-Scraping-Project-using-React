@@ -36,6 +36,15 @@ except Exception:
     pass
 
 # Ensure runtime directories exist
+# Vercel's deployed filesystem is read-only, so use /tmp there.
+if os.getenv("VERCEL"):
+    RUNTIME_DIR = Path("/tmp")
+    OUTPUT_DIR = RUNTIME_DIR / "output"
+    LOGS_DIR = RUNTIME_DIR / "logs"
+else:
+    OUTPUT_DIR = BASE_DIR / "output"
+    LOGS_DIR = BASE_DIR / "logs"
+
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
